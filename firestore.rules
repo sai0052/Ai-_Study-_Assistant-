@@ -1,0 +1,40 @@
+rules_version = '2';
+
+// Deploy with: firebase deploy --only firestore:rules
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Users can only read/write their own profile document.
+    match /users/{userId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Notes: a student can only read/write their own notes (ownerId field
+    // must match their auth uid on both create and update).
+    match /notes/{noteId} {
+      allow read, update, delete: if request.auth != null && resource.data.ownerId == request.auth.uid;
+      allow create: if request.auth != null && request.resource.data.ownerId == request.auth.uid;
+    }
+
+    // Tasks: same ownership pattern as notes.
+    match /tasks/{taskId} {
+      allow read, update, delete: if request.auth != null && resource.data.ownerId == request.auth.uid;
+      allow create: if request.auth != null && request.resource.data.ownerId == request.auth.uid;
+    }
+
+    // Study sessions: same ownership pattern.
+    match /study_sessions/{sessionId} {
+      allow read, update, delete: if request.auth != null && resource.data.ownerId == request.auth.uid;
+      allow create: if request.auth != null && request.resource.data.ownerId == request.auth.uid;
+    }
+
+    // Campus announcements: read-only for all signed-in students.
+    // Writes should only happen from a trusted admin/Cloud Function context,
+    // never from the mobile client — so no client `create`/`update` rule.
+    match /announcements/{announcementId} {
+      allow read: if request.auth != null;
+      allow write: if false;
+    }
+  }
+}

@@ -1,0 +1,17 @@
+rules_version = '2';
+
+// Deploy with: firebase deploy --only storage
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // Note attachments: each student can only upload/read files inside
+    // their own folder (notes/{their-uid}/...). 20MB cap keeps costs sane
+    // for a portfolio project.
+    match /notes/{userId}/{fileName} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow write: if request.auth != null
+                   && request.auth.uid == userId
+                   && request.resource.size < 20 * 1024 * 1024;
+    }
+  }
+}
